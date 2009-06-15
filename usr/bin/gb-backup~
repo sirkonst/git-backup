@@ -22,18 +22,22 @@ _optimized() {
 }
 
 # обновление exclude и include правил и копии файла конфига
-__ref_config() {
-	 echo -e "#exclude config\n" > ${GIT_DIR}/info/exclude
+# TODO пока отключено
+__exin_config() {
+	echo -e "#exclude config\n" > ${GIT_DIR}/info/exclude
 
-	 [[ -n "$INCLUDES" ]] && echo "*" >> ${GIT_DIR}/info/exclude
+	if [ -n "${GB_INCLUDES}" ] ; then
+		echo "*" >> ${GIT_DIR}/info/exclude
+		for x in "${GB_INCLUDES}" ; do
+		echo "!$x" >> ${GIT_DIR}/info/exclude
+	done
+	fi
 
-	 for x in "$INCLUDES" ; do
-		  echo "!$x" >> ${GIT_DIR}/info/exclude
-	 done
-
-	 for x in $EXCLUDES ; do
-		  echo "$x" >> ${GIT_DIR}/info/exclude
-	 done
+	if [ -n "${GB_EXCLUDES}" ] ; then
+		for x in ${GB_EXCLUDES} ; do
+			echo "$x" >> ${GIT_DIR}/info/exclude
+		done
+	fi
 }
 
 # создание архива
@@ -45,27 +49,29 @@ _backup() {
 
 	 echo "Создаение архива с меткой ${NOWDATETIME}"
 
-	 if [ ! -d "${GIT_DIR}" ]
+	 if [ ! -e "${GIT_DIR}/HEAD" ]
 	 then
-		  $GIT init
-		  __ref_config
-		  $GIT add ${INCLUDES:-.}
+		$GIT init
+		#__exin_config
+		$GIT add .
+		#$GIT add ${GB_INCLUDES:-.}
 	 fi
 
-	 __ref_config
-	 $GIT add --all ${INCLUDES}
+	#__exin_config
+	#$GIT add --all ${GB_INCLUDES}
+	$GIT add .
 
-	 $GIT commit -a -m "${NOWDATETIME}" --quiet
+	$GIT commit -a -m "${NOWDATETIME}" --quiet
 
-	 if [ "$1" == "daily" ] ; then
-		  echo "Архив помечен как дневной ${NOWDATE}"
-		  $GIT tag -a -m "${NOWDATETIME}" ${NOWDATE}
-		  echo "Проводится оптимизация архивного хранилища"
-		  _optimized
-	 elif [ -n "$1" ] ; then
-		  echo "Архив помечен тегом $1"
-		  $GIT tag -a -m "${NOWDATETIME}" "$1"
-	 fi
+	if [ "$1" == "daily" ] ; then
+		echo "Архив помечен как дневной ${NOWDATE}"
+		$GIT tag -a -m "${NOWDATETIME}" ${NOWDATE}
+		echo "Проводится оптимизация архивного хранилища"
+		_optimized
+	elif [ -n "$1" ] ; then
+		echo "Архив помечен тегом $1"
+		$GIT tag -a -m "${NOWDATETIME}" "$1"
+	fi
 }
 
 _ls() {
@@ -139,7 +145,7 @@ _restore() {
 	 _pause "-- нажмите любую кпонку для продолжения... --"
 	 echo
 
-	 $GIT checkout $POINT $restFILES && echo "...восстановление завершено!"
+	 $GIT checkout -f $POINT -- $restFILES && echo "...восстановление завершено!"
 }
 
 # очистка заданного пути от файлов которых нет в архиве
@@ -185,10 +191,10 @@ _git() {
 _help() {
 	 echo "Доступные комманды: "
 	 echo -e "\t backup [daily] [tag]"
-#	 echo -e "\t restore [point] [file|path...]"
+	 echo -e "\t restore [point] [file|path...]"
 	 echo -e "\t status"
 	 echo -e "\t last"
-#	 echo -e "\t ls"
+	 echo -e "\t ls"
 	 echo -e "\t show [tag]"
 #	 echo -e "\t diff [point]{0,2} [path...]"
 	 echo -e "\t optimized"
@@ -197,17 +203,17 @@ _help() {
 
 case "$1" in
 	 "backup"	)	_backup $2;;
-#	 "restore"	)	_restore $@;;
+	 "restore"	)	_restore $@;;
 #	 "clean"	)	_clean $@;;
 #	 "unpack"	)	_unpack $@;;
 	 "status"	)	_status;;
 	 "last"		)	_last;;
-#	 "ls"		)	_ls $@;;
+	 "ls"		)	_ls $@;;
 	 "show"		)	_show $2;;
 #	 "diff"		)	_diff $@;;
 #	 "gui"	)	$QGIT4;;
 	 "optimized")	_optimized;;
 	 "help"		)	_help;;
-#	 "git"		)	_git $@;;
+	 "git"		)	_git $@;;
 	 *			)	_help;;
 esac

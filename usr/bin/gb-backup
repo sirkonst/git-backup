@@ -26,12 +26,12 @@ _optimized() {
 __exin_config() {
 	echo -e "#exclude config\n" > ${GIT_DIR}/info/exclude
 
-	if [ -n "${GB_INCLUDES}" ] ; then
-		echo "*" >> ${GIT_DIR}/info/exclude
-		for x in "${GB_INCLUDES}" ; do
-		echo "!$x" >> ${GIT_DIR}/info/exclude
-	done
-	fi
+	#if [ -n "${GB_INCLUDES}" ] ; then
+	#	echo "*" >> ${GIT_DIR}/info/exclude
+	#	for x in "${GB_INCLUDES}" ; do
+	#	echo "!$x" >> ${GIT_DIR}/info/exclude
+	#done
+	#fi
 
 	if [ -n "${GB_EXCLUDES}" ] ; then
 		for x in ${GB_EXCLUDES} ; do
@@ -52,14 +52,14 @@ _backup() {
 	 if [ ! -e "${GIT_DIR}/HEAD" ]
 	 then
 		$GIT init
-		#__exin_config
+		__exin_config
 		$GIT add .
 		#$GIT add ${GB_INCLUDES:-.}
 	 fi
 
-	#__exin_config
+	__exin_config
 	#$GIT add --all ${GB_INCLUDES}
-	$GIT add --all
+	$GIT add .
 
 	$GIT commit -a -m "${NOWDATETIME}" --quiet
 
