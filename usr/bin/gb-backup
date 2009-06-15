@@ -1,0 +1,219 @@
+#!/bin/bash
+
+
+if [ -z "$GB_MANAGER" ] ; then
+	 if [ -e ".gb.conf" ] ; then
+		  . /etc/gb.conf
+		  . .gb.conf
+		  export GIT_DIR=${GB_ARCHIVES_DIR}
+		  export GIT_WORK_TREE=${GB_BACKUP_TARGET}
+	 else
+		  echo "Файл конфигурации не найден"
+		  exit 1
+	 fi
+fi
+
+cd ${GIT_WORK_TREE}
+
+_optimized() {
+	 $GIT fsck
+	 $GIT count-objects
+	 $GIT gc
+}
+
+# обновление exclude и include правил и копии файла конфига
+# TODO пока отключено
+__exin_config() {
+	echo -e "#exclude config\n" > ${GIT_DIR}/info/exclude
+
+	if [ -n "${GB_INCLUDES}" ] ; then
+		echo "*" >> ${GIT_DIR}/info/exclude
+		for x in "${GB_INCLUDES}" ; do
+		echo "!$x" >> ${GIT_DIR}/info/exclude
+	done
+	fi
+
+	if [ -n "${GB_EXCLUDES}" ] ; then
+		for x in ${GB_EXCLUDES} ; do
+			echo "$x" >> ${GIT_DIR}/info/exclude
+		done
+	fi
+}
+
+# создание архива
+# $1==daily - создать дневной архив и провести оптимизацию
+# $1=="тег" - поменить архив тегом
+_backup() {
+	 NOWDATE=`date '+%Y-%m-%d'`
+	 NOWDATETIME=`date '+%Y-%m-%d_%Hh%Mm'`
+
+	 echo "Создаение архива с меткой ${NOWDATETIME}"
+
+	 if [ ! -e "${GIT_DIR}/HEAD" ]
+	 then
+		$GIT init
+		#__exin_config
+		$GIT add .
+		#$GIT add ${GB_INCLUDES:-.}
+	 fi
+
+	#__exin_config
+	#$GIT add --all ${GB_INCLUDES}
+	$GIT add --all
+
+	$GIT commit -a -m "${NOWDATETIME}" --quiet
+
+	if [ "$1" == "daily" ] ; then
+		echo "Архив помечен как дневной ${NOWDATE}"
+		$GIT tag -a -m "${NOWDATETIME}" ${NOWDATE}
+		echo "Проводится оптимизация архивного хранилища"
+		_optimized
+	elif [ -n "$1" ] ; then
+		echo "Архив помечен тегом $1"
+		$GIT tag -a -m "${NOWDATETIME}" "$1"
+	fi
+}
+
+_ls() {
+	 shift
+
+	 if [ -z "$1" ] || [ -z "$2" ]
+	 then
+		  $GIT ls-tree  -t -r --name-only HEAD
+	 else
+		  $GIT ls-tree  -t -r --name-only $@
+	 fi
+}
+
+# Вывод точек архивации и тегов
+# $1 - вывести список тегов
+_show() {
+	 if [ "$1" == "tag" ] ; then
+		  $GIT tag
+	 else
+		  echo -e "    ID \t |\tTime Point   | \t Daily Points"
+		  $GIT rev-list --pretty=format:" %h | %Cblue%s%Creset | %d" ${ARCHIVES_BRANCH} | grep -v commit \
+		  | sed 's/refs\/tags\///g' | sed 's/tag://g' | sed 's/refs\/heads\///g' | sed 's/[()]//g'
+	 fi
+}
+
+# show with relative date
+# $GIT rev-list --format=" %h | %Cblue%s%Creset (%ar) | %d" ${ARCHIVES_BRANCH} | grep -v commit
+
+# поиск хеша по временной метке
+# например: 2009-06-01_13h29m -> c3cbf30e98373ad10ef080e09bcad1c79257fade
+# TODO: _point_to_hash может вернуть больше одной записи
+_point_to_hash() {
+	 $GIT rev-list --grep="$1" ${ARCHIVES_BRANCH}
+}
+
+# показывает последнии изменения в бекапе
+_last() {
+	 $GIT show --name-status --pretty=format:"Последнии изменения в архиве '%s' [%ar]"
+}
+
+# показать различия в архиве
+_diff() {
+	 shift
+	 $GIT diff --name-status $@
+}
+
+# $1 - точка восстановления (по умолчанию последняя точка HEAD)
+# $2,3... - файлы для восстановления
+# TODO: _point_to_hash может вернуть больше одной записи
+_restore() {
+	 shift;
+
+	 if [ -n "$1" ] ; then
+		  # точка восстановления из тега
+		  POINT=`$GIT tag | grep $1`
+		  # если тег не найдет, то точка ищется в коммитах
+		  POINT=${POINT:-$(_point_to_hash $1)}
+	 fi
+
+	 if [ -z "$POINT" ] ; then
+		  POINT="HEAD"
+	 else
+		  hPOINT=$1
+		  shift
+	 fi
+
+	 restFILES=$@
+	 echo -e "Будут восстановлены файлы по метке ${hPOINT:-HEAD}: \n\t ${restFILES:-(все файлы в архиве)}"
+
+	 echo
+	 _pause "-- нажмите любую кпонку для продолжения... --"
+	 echo
+
+	 $GIT checkout -f $POINT -- $restFILES && echo "...восстановление завершено!"
+}
+
+# очистка заданного пути от файлов которых нет в архиве
+# $1,2... - пути для проверки и очистки
+_clean() {
+	 shift
+	 # список файлов на удаление
+	 echo "Список файлов на удаление:"
+	 $GIT clean -n -- $@
+	 echo
+	 _pause "-- нажмите любую кпонку для удаления файлов ... --"
+	 echo
+	 # удаление лишних файлов
+	 $GIT clean -f -- $@
+}
+
+_pause() {
+	 read -p "$@"
+}
+
+_unpack() {
+	 shift
+	 # $1 - куда распокавать (со шлемеп на конце)
+	 # $2 - point
+	 # $3 - что распокавать
+	 PREF=$1
+	 POINT=$2
+	 shift; shift
+	 echo "archive --prefix=$PREF $POINT $@ | tar xvf -"
+	 #$GIT archive --prefix=$PREF $POINT $@ | tar xvf -
+}
+
+_status() {
+	echo "Разлиция между последним архивом и файловой системой:"
+	$GIT status
+}
+
+_git() {
+	 shift
+	 $GIT $@
+}
+
+_help() {
+	 echo "Доступные комманды: "
+	 echo -e "\t backup [daily] [tag]"
+	 echo -e "\t restore [point] [file|path...]"
+	 echo -e "\t status"
+	 echo -e "\t last"
+	 echo -e "\t ls"
+	 echo -e "\t show [tag]"
+#	 echo -e "\t diff [point]{0,2} [path...]"
+	 echo -e "\t optimized"
+#	 echo -e "\t gui"
+}
+
+case "$1" in
+	 "backup"	)	_backup $2;;
+	 "restore"	)	_restore $@;;
+#	 "clean"	)	_clean $@;;
+#	 "unpack"	)	_unpack $@;;
+	 "status"	)	_status;;
+	 "last"		)	_last;;
+	 "ls"		)	_ls $@;;
+	 "show"		)	_show $2;;
+#	 "diff"		)	_diff $@;;
+#	 "gui"	)	$QGIT4;;
+	 "optimized")	_optimized;;
+	 "help"		)	_help;;
+	 "git"		)	_git $@;;
+	 *			)	_help;;
+esac
