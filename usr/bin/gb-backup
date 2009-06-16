@@ -26,6 +26,9 @@ _optimized() {
 __exin_config() {
 	echo -e "#exclude config\n" > ${GIT_DIR}/info/exclude
 
+	# отключение подстановки имен файлов по шаблону *
+	GLOBIGNORE="*"
+
 	#if [ -n "${GB_INCLUDES}" ] ; then
 	#	echo "*" >> ${GIT_DIR}/info/exclude
 	#	for x in "${GB_INCLUDES}" ; do
