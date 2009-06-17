@@ -101,9 +101,25 @@ _point_to_hash() {
 	 $GIT rev-list --grep="$1" ${ARCHIVES_BRANCH}
 }
 
-# показывает последнии изменения в бекапе
+# выдает точку архива из тега или записи вида '2009-06-16_17h47m'
+# $1 - строка для преобразования
+# возвращается либо точка архива если найдена либо HEAD
+__get_point() {
+	 if [ -n "$1" ] ; then
+		  # точка восстановления из тега
+		  POINT=`$GIT tag | grep "$1"`
+		  # если тег не найдет, то точка ищется в коммитах
+		  POINT=${POINT:-$(_point_to_hash "$1")}
+	 fi
+
+	echo "${POINT:-HEAD}"
+}
+
+# показывает последнии изменения в точке архивации
+# $1 - точка архивации (по умолчанию последняя)
 _last() {
-	 $GIT show --name-status --pretty=format:"Последнии изменения в архиве '%s' [%ar]"
+	POINT=$(__get_point)
+	$GIT show --name-status --pretty=format:"Изменения в архиве '%s' [%ar]" "${POINT}"
 }
 
 # показать различия в архиве
@@ -187,7 +203,7 @@ _help() {
 	 echo -e "\t backup [daily] [tag]"
 	 echo -e "\t restore [point] [file|path...]"
 	 echo -e "\t status"
-	 echo -e "\t last"
+	 echo -e "\t last [point]"
 	 echo -e "\t ls"
 	 echo -e "\t show [tag]"
 #	 echo -e "\t diff [point]{0,2} [path...]"
@@ -201,7 +217,7 @@ case "$1" in
 #	 "clean"	)	_clean $@;;
 #	 "unpack"	)	_unpack $@;;
 	 "status"	)	_status;;
-	 "last"		)	_last;;
+	 "last"		)	_last $@;;
 	 "ls"		)	_ls $@;;
 	 "show"		)	_show $2;;
 #	 "diff"		)	_diff $@;;
