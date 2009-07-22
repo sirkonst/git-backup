@@ -86,7 +86,7 @@ _show() {
 		  $GIT tag
 	 else
 		  echo -e "    ID \t |\tTime Point   | \t Daily Points"
-		  $GIT rev-list --pretty=format:" %h | %Cblue%s%Creset | %d" ${ARCHIVES_BRANCH} | grep -v commit \
+		  $GIT rev-list --max-count=20 --reverse --pretty=format:" %h | %Cblue%s%Creset | %d" ${ARCHIVES_BRANCH} | grep -v commit \
 		  | sed 's/refs\/tags\///g' | sed 's/tag://g' | sed 's/refs\/heads\///g' | sed 's/[()]//g'
 	 fi
 }
@@ -194,6 +194,7 @@ _unpack() {
 	 #$GIT archive --prefix=$PREF $POINT $@ | tar xvf -
 }
 
+# TODO: $1 - указывает директирию где проводить сверку
 _status() {
 	echo "Разлиция между последним архивом и файловой системой:"
 	$GIT status
