@@ -133,9 +133,9 @@ __get_point() {
 # TODO: с тега git show отображаен лишную информацию
 _last() {
 	shift
-	POINT=`__get_point $1`
+	POINT=$(__get_point $1)
 
-	$GIT show --name-status --pretty=format:"Изменения в архиве '%s' [%ar]" "${POINT}"
+	$GIT show --name-status --pretty=format:"Изменения в архиве '%s' [%ar]" "${POINT:-HEAD}"
 }
 
 # показать различия в архиве
