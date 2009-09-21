@@ -15,6 +15,14 @@ fi
 
 cd ${GIT_WORK_TREE}
 
+# проверка папок архива и создание при отсутствии
+__checkdir() {
+	if [ ! -d ${GB_ARCHIVES_ROOT} ] ; then
+		echo "Создание папки для хранения бекапа - ${GB_ARCHIVES_ROOT}"
+		mkdir -p ${GB_ARCHIVES_ROOT}
+	fi
+}
+
 # [$1] - сообщение об ошибке
 __error() {
 	 echo -n "Ошибка выполнения"
@@ -54,6 +62,8 @@ _backup() {
 
 	 if [ ! -e "${GIT_DIR}/HEAD" ]
 	 then
+		__checkdir
+
 		$GIT init
 		__exin_config
 		$GIT add -- ${GB_INCLUDES:-.}

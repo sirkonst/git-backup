@@ -2,6 +2,14 @@
 
 . /etc/gb.conf
 
+# проверка папок архива и создание при отсутствии
+__checkdir() {
+	if [ ! -d ${GB_ARCHIVES_ROOT} ] ; then
+		echo "Создание папки для хранения бекапа - ${GB_ARCHIVES_ROOT}"
+		mkdir -p ${GB_ARCHIVES_ROOT}
+	fi
+}
+
 # $1 - имя конфига (пример: "etc.gb.conf")
 __set_gb_env() {
 	if [ ! -e "/etc/gb.d/$1" ] ; then
@@ -42,6 +50,8 @@ _backupall() {
 	for x in $GBS ; do
 		__set_gb_env "$x"
 
+		__checkdir
+
 		cp "/etc/gb.d/$x" "${GIT_WORK_TREE}/.gb.conf"
 		echo -e "\n# env" >> "${GIT_WORK_TREE}/.gb.conf"
 		echo "GB_ARCHIVES_DIR=${GIT_DIR}" >> "${GIT_WORK_TREE}/.gb.conf"
@@ -62,6 +72,8 @@ _backupall() {
 _backup() {
 	shift
 	__set_gb_env "$1.gb.conf"
+
+	__checkdir
 
 	cp "/etc/gb.d/$1.gb.conf" "${GIT_WORK_TREE}/.gb.conf"
 	echo -e "\n# env" >> "${GIT_WORK_TREE}/.gb.conf"
