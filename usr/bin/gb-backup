@@ -108,6 +108,20 @@ _show() {
 	 fi
 }
 
+## Вывод истории изменеия файла
+# $1 - имя файла
+_log() {
+	shift
+	if [ -z "$1" ]; then
+		echo "Ошибка! Не задано имя файла. См. help."
+		exit 1
+	fi
+
+	echo -e "    ID \t |\tTime Point   | \t Daily Points"
+	$GIT rev-list --all --reverse --pretty=format:" %h | %Cblue%s%Creset | %d" ${ARCHIVES_BRANCH} -- $1 \
+	| grep -v commit | sed 's/refs\/tags\///g' | sed 's/tag://g' | sed 's/refs\/heads\///g' | sed 's/[()]//g'
+}
+
 # show with relative date
 # $GIT rev-list --format=" %h | %Cblue%s%Creset (%ar) | %d" ${ARCHIVES_BRANCH} | grep -v commit
 
@@ -268,6 +282,7 @@ _help() {
 	 echo -e "\t restore <point> <file|path...>"
 	 echo -e "\t status"
 	 echo -e "\t last [point]"
+	 echo -e "\t log <path>"
 	 echo -e "\t ls"
 	 echo -e "\t show [tag]"
 #	 echo -e "\t diff [point]{0,2} [path...]"
@@ -284,6 +299,7 @@ case "$1" in
 	 "last"		)	_last $@;;
 	 "ls"		)	_ls $@;;
 	 "show"		)	_show $2;;
+	 "log"		)	_log $@;;
 #	 "diff"		)	_diff $@;;
 #	 "gui"	)	$QGIT4;;
 	 "optimized")	_optimized;;
