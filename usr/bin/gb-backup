@@ -48,6 +48,8 @@ __exin_config() {
 		for x in ${GB_EXCLUDES} ; do
 			echo "$x" >> ${GIT_DIR}/info/exclude
 		done
+		# удаление из архива исключенных файловой
+		# $GIT rm -r --cached --ignore-unmatch "${GB_EXCLUDES}"
 	fi
 }
 
