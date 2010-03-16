@@ -36,6 +36,11 @@ _optimized() {
 	 $GIT gc
 }
 
+# удаление из бекапа файлов добавленных в исключение
+_clear_excludes() {
+	$GIT rm -r --cached --ignore-unmatch "${GB_EXCLUDES}"
+}
+
 # обновление exclude и include правил и копии файла конфига
 # TODO пока отключено
 __exin_config() {
@@ -49,7 +54,7 @@ __exin_config() {
 			echo "$x" >> ${GIT_DIR}/info/exclude
 		done
 		# удаление из архива исключенных файловой
-		# $GIT rm -r --cached --ignore-unmatch "${GB_EXCLUDES}"
+		# _clear_excludes
 	fi
 }
 
@@ -289,6 +294,7 @@ _help() {
 	 echo -e "\t show [tag]"
 #	 echo -e "\t diff [point]{0,2} [path...]"
 	 echo -e "\t optimized"
+	 echo -e "\t clear_excludes"
 #	 echo -e "\t gui"
 }
 
@@ -303,9 +309,10 @@ case "$1" in
 	 "show"		)	_show $2;;
 	 "log"		)	_log $@;;
 #	 "diff"		)	_diff $@;;
-#	 "gui"	)	$QGIT4;;
-	 "optimized")	_optimized;;
+#	 "gui"		)	$QGIT4;;
+	 "optimized"	)	_optimized;;
+	 "clean_exclude" )	_clean_exclude;;
 	 "help"		)	_help;;
 	 "git"		)	_git $@;;
-	 *			)	_help;;
+	 *		)	_help;;
 esac
