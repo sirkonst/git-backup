@@ -311,7 +311,7 @@ case "$1" in
 #	 "diff"		)	_diff $@;;
 #	 "gui"		)	$QGIT4;;
 	 "optimized"	)	_optimized;;
-	 "clean_exclude" )	_clean_exclude;;
+	 "clear_excludes" )	_clear_excludes;;
 	 "help"		)	_help;;
 	 "git"		)	_git $@;;
 	 *		)	_help;;
