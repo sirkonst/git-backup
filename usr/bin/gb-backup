@@ -38,6 +38,9 @@ _optimized() {
 
 # удаление из бекапа файлов добавленных в исключение
 _clear_excludes() {
+	# отключение подстановки имен файлов по шаблону * и ?
+	GLOBIGNORE="*?"
+
 	$GIT rm -r --cached --ignore-unmatch "${GB_EXCLUDES}"
 }
 
